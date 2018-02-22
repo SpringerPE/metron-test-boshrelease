@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -e -x
+
+BOSH_PACKAGES_DIR=${BOSH_PACKAGES_DIR:-/var/vcap/packages}
+
+# Build
+echo "Building and installing metron-throughput binaries ..."
+
+mkdir -p ${BOSH_INSTALL_TARGET}/src
+mkdir -p ${BOSH_INSTALL_TARGET}/bin
+
+cp -a . ${BOSH_INSTALL_TARGET}/src
+
+export GOPATH=${BOSH_INSTALL_TARGET}
+export GOROOT=$(readlink -nf "${BOSH_PACKAGES_DIR}/golang")
+export PATH=${GOROOT}/bin:${PATH}
+
+pushd ${BOSH_INSTALL_TARGET}/src/github.com/jriguera/metron-throughput
+  go build -o ${BOSH_INSTALL_TARGET}/bin/metron-logger sender/main.go
+  go build -o ${BOSH_INSTALL_TARGET}/bin/metron-receiver receiver/main.go
+popd
+
+# clean up source artifacts
+rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg

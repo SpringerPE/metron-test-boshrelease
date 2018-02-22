@@ -1,0 +1,10 @@
+---
+name: metron-tests
+
+description: Metron test binaries
+
+packages:
+- metron-throughput
+
+templates: {}
+
