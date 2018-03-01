@@ -2,10 +2,22 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "code.cloudfoundry.org/go-batching"
+  packages = ["."]
+  revision = "924d2a9b48ace7c3377be6276499f90c71891920"
+
+[[projects]]
+  branch = "master"
+  name = "code.cloudfoundry.org/go-diodes"
+  packages = ["."]
+  revision = "361f4b34988b402fbf4d5b744cc9b35959c2ac4e"
+
+[[projects]]
+  branch = "master"
   name = "code.cloudfoundry.org/go-loggregator"
   packages = ["rpc/loggregator_v2"]
-  revision = "041998b54f880b3e5460fcc4e7d4d77742dc3d86"
-  version = "v6.0.0"
+  revision = "cbf81526f28b1f47d060d0610c6529411d1d4673"
 
 [[projects]]
   branch = "master"
@@ -17,8 +29,11 @@
   branch = "master"
   name = "code.cloudfoundry.org/loggregator"
   packages = [
+    "diodes",
     "metricemitter",
-    "plumbing"
+    "plumbing",
+    "plumbing/conversion",
+    "router/internal/server/v1"
   ]
   revision = "a7e9169793dfe5b0e9af56287af81e182736335b"
 
@@ -161,6 +176,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "edd74f43105d5657a0b92205583e3634f7790b89e902ddcd4ab2d4b18c2b110e"
+  inputs-digest = "687c309b124b050a36ed91dd31cde2a03216808e9cbc44bec6a5fe33089cc8b7"
   solver-name = "gps-cdcl"
   solver-version = 1

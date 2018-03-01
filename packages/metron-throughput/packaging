@@ -16,9 +16,10 @@ export GOROOT=$(readlink -nf "${BOSH_PACKAGES_DIR}/golang")
 export PATH=${GOROOT}/bin:${PATH}
 
 pushd ${BOSH_INSTALL_TARGET}/src/github.com/jriguera/metron-throughput
-  go build -o ${BOSH_INSTALL_TARGET}/bin/metron-logger sender/main.go
-  go build -o ${BOSH_INSTALL_TARGET}/bin/metron-receiver receiver/main.go
+  go build -o ${BOSH_INSTALL_TARGET}/bin/metron-logger sender/*.go
+  go build -o ${BOSH_INSTALL_TARGET}/bin/metron-receiver receiver/*.go
 popd
 
 # clean up source artifacts
 rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg
+

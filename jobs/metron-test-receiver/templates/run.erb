@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+
+set -e # exit immediately if a simple command exits with a non-zero status
+
+
+NAME=metron-test-receiver
+
+# Setup log and tmp folders
+export LOG_DIR="/var/vcap/sys/log/$NAME"
+mkdir -p "$LOG_DIR" && chmod 775 "$LOG_DIR"
+
+export RUN_DIR="/var/vcap/sys/run/$NAME"
+mkdir -p "$RUN_DIR" && chmod 775 "$RUN_DIR"
+
+export TMP_DIR="/var/vcap/sys/tmp/$NAME"
+mkdir -p "$TMP_DIR" && chmod 775 "$TMP_DIR"
+export TMPDIR="$TMP_DIR"
+
+
+LOG=$LOG_DIR/metron-receiver.log
+ARGS="${@:-$ARGS}"
+
+while true
+do
+  echo "------ Starting metron-receiver $(date +%y:%m:%d-%H:%M:%S)" | tee -a ${LOG}
+  /var/vcap/packages/metron-throughput/bin/metron-receiver \
+    -cert /var/vcap/jobs/metron-test-receiver/config/certs/doppler.crt \
+    -key /var/vcap/jobs/metron-test-receiver/config/certs/doppler.key  \
+    -ca /var/vcap/jobs/metron-test-receiver/config/certs/loggregator_ca.crt \
+    -hostport "0.0.0.0:<%= p('doppler.grpc_port') %>" \
+    ${ARGS} > >(tee -a ${LOG}) 2> >(tee -a ${LOG} >&2)
+done
+
