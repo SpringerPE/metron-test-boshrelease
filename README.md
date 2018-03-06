@@ -18,73 +18,85 @@ With the output of both commands you can see the performance of metron_agent.
 
 Sender:
 ```
-generator/e11d0c70-6ba7-4cb2-b5ab-fbc789feed8e:/var/vcap/jobs/metron-test-logger/bin# ./run -runtime 600
------- Starting metron-logger 18:03:01-15:01:17
-*** Init, sending to 127.0.0.1:3457 with origin metron-throughput/zz
-* Starting go sub ...
-* Sending termination to go sub ...
-* Printing info ...
-  Logs sent = 599793 (+1)
+------ Starting metron-logger 18:03:05-22:50:49
+*** Init emiter sending to 127.0.0.1:3457 with origin=metron-throughput/zz with 1 threads and interval 1000 microseconds for 30 seconds
+*** INFO:
+* Logs sent by worker 0: 29978 (0 errors) in 30.000108s, rate=999.263081 logs/s
+* Totals:
+  Logs sent = 29978
   Errors = 0
-  Start time = Thu, 01 Mar 2018 15:01:17 UTC
-  End time = Thu, 01 Mar 2018 15:11:17 UTC
-  Elapsed time = 600.000230 s
-  Rate = 999.654616
+  Start time = Mon, 05 Mar 2018 22:50:49 UTC
+  End time = Mon, 05 Mar 2018 22:51:19 UTC
+  Elapsed seconds = 30.000108 s
+  Rate = 999.263081
+* STATS NumCPUs Workers Interval(us) TheoreticalRate(logs/s) LogsSent Errors Duration Rate(logs/s)
+--STATS 2 1 1000 30000.107642 29978 0 30.000108 999.263081
 *** End
 ```
 
 Receiver:
 ```
-receiver/14fdd134-3d54-46f8-a947-d82c3b325002:/var/vcap/jobs/metron-test-receiver/bin# ./run
------- Starting metron-receiver 18:03:01-14:58:35
-*** Init, listening 0.0.0.0:8082 with origin: metron-throughput/zz
+*** Init listening on 0.0.0.0:8082 with origin=metron-throughput/zz with 10 threads, 1000 queue size and keep alive time of 30s
 * Starting Doppler Router with 1000 diodes
-2018/03/01 14:58:35 Starting gRPC server on 0.0.0.0:8082
-2018/03/01 15:11:47 Worker 5 about to stop due to inactivity for 30.000288 s
-2018/03/01 15:11:47 Worker 1 about to stop due to inactivity for 30.000882 s
-2018/03/01 15:11:47 Worker 7 about to stop due to inactivity for 30.000760 s
-2018/03/01 15:11:47 Worker 4 about to stop due to inactivity for 30.000754 s
-2018/03/01 15:11:47 Worker 6 about to stop due to inactivity for 30.000722 s
-2018/03/01 15:11:47 Worker 0 about to stop due to inactivity for 30.000531 s
-2018/03/01 15:11:47 Worker 2 about to stop due to inactivity for 30.000397 s
-2018/03/01 15:11:47 Worker 3 about to stop due to inactivity for 30.000255 s
-2018/03/01 15:11:47 Worker 8 about to stop due to inactivity for 30.000610 s
-2018/03/01 15:11:47 Worker 9 about to stop due to inactivity for 30.000409 s
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Stopping reader in worker=9
-2018/03/01 15:11:47 Worker 9 about to stop due to inactivity for 30.001567 s
-* Done! Showing reports ...
+2018/03/05 23:42:53 Starting gRPC server on 0.0.0.0:8082
+2018/03/05 23:43:55 Worker 9 about to stop due to inactivity for 30.000946 s
+2018/03/05 23:43:55 Worker 7 about to stop due to inactivity for 30.000100 s
+2018/03/05 23:43:55 Worker 1 about to stop due to inactivity for 30.000029 s
+2018/03/05 23:43:55 Worker 8 about to stop due to inactivity for 30.000034 s
+2018/03/05 23:43:55 Worker 6 about to stop due to inactivity for 30.000160 s
+2018/03/05 23:43:55 Worker 0 about to stop due to inactivity for 30.000710 s
+2018/03/05 23:43:55 Worker 2 about to stop due to inactivity for 30.000650 s
+2018/03/05 23:43:55 Worker 3 about to stop due to inactivity for 30.000525 s
+2018/03/05 23:43:55 Worker 4 about to stop due to inactivity for 30.000691 s
+2018/03/05 23:43:55 Worker 5 about to stop due to inactivity for 30.000769 s
+*** Done! Showing reports ...
 * Printing Doppler library info ...
 * Doppler SpyHealthRegistrar: 
    ingressStreamCount :  5
-* Printing info ...
-* Operations done by worker 0: 59920 (0 errors) in 599.904197 s, rate=99.882615 ops/s
-* Operations done by worker 1: 61005 (0 errors) in 599.772802 s, rate=101.713515 ops/s
-* Operations done by worker 2: 59815 (0 errors) in 599.934414 s, rate=99.702565 ops/s
-* Operations done by worker 3: 60070 (0 errors) in 599.842736 s, rate=100.142915 ops/s
-* Operations done by worker 4: 60077 (0 errors) in 599.863689 s, rate=100.151086 ops/s
-* Operations done by worker 5: 59584 (0 errors) in 599.792999 s, rate=99.340939 ops/s
-* Operations done by worker 6: 60440 (0 errors) in 599.732450 s, rate=100.778272 ops/s
-* Operations done by worker 7: 59376 (0 errors) in 599.752730 s, rate=99.000800 ops/s
-* Operations done by worker 8: 58946 (0 errors) in 599.883876 s, rate=98.262351 ops/s
-* Operations done by worker 9: 60560 (0 errors) in 599.974933 s, rate=100.937550 ops/s
+*** INFO:
+* Operations done by worker 0: 2946 (0 errors) in 29.946500 s, rate=98.375438 ops/s
+* Operations done by worker 1: 2936 (0 errors) in 29.823296 s, rate=98.446529 ops/s
+* Operations done by worker 2: 3180 (0 errors) in 29.710488 s, rate=107.032911 ops/s
+* Operations done by worker 3: 2627 (0 errors) in 29.944447 s, rate=87.729122 ops/s
+* Operations done by worker 4: 3085 (0 errors) in 29.954582 s, rate=102.989253 ops/s
+* Operations done by worker 5: 2926 (0 errors) in 29.995069 s, rate=97.549367 ops/s
+* Operations done by worker 6: 3054 (0 errors) in 29.923928 s, rate=102.058794 ops/s
+* Operations done by worker 7: 3108 (0 errors) in 29.710982 s, rate=104.607784 ops/s
+* Operations done by worker 8: 2962 (0 errors) in 29.904528 s, rate=99.048545 ops/s
+* Operations done by worker 9: 3157 (0 errors) in 29.732338 s, rate=106.180683 ops/s
 * Totals:
-  Logs processed = 599793
+  Logs received = 29981
   Errors = 0
-  Start time = Thu, 01 Mar 2018 15:01:17 UTC
-  End time = Thu, 01 Mar 2018 15:11:17 UTC
-  Elapsed time = 600.005186 s
-  Rate = 999.646360
+  Start time = Mon, 05 Mar 2018 23:42:55 UTC
+  End time = Mon, 05 Mar 2018 23:43:25 UTC
+  Elapsed seconds = 29.996162 s
+  Rate = 999.494525
+* STATS Date Time NumCPUs diodes Workers LogsReceived Errors Duration Rate(logs/s)
+--STATS 03-05-2018 23:42:55 4 1000 10 29981 0 29.996162 999.494525
 *** End
 ```
+
+You can use `nohup` to run the launchers (they accept args!):
+  * sender: `/var/vcap/jobs/metron-test-logger/bin/run` (one shot script, but
+  you can create a loop, make sure to wait **more than 30s** between loops)
+  ```
+  rm /var/vcap/sys/log/metron-test-logger/metron-logger.log; 
+  for i in $(seq 1 10);
+  do
+      /var/vcap/jobs/metron-test-logger/bin/run;
+      sleep 60;
+  done
+  ```
+  * receiver: `/var/vcap/jobs/metron-test-receiver/bin/run` (keeps `metron-receiver` running)
+
+These scripts log the results to:
+  * sender: `/var/vcap/sys/log/metron-test-logger/metron-logger.log`
+  * receiver: `/var/vcap/sys/log/metron-test-receiver/metron-receiver.log`
+
+In order to analyze the log files, see the script `generate_stats.sh` included in
+the package to generate CSV from those logs. **MAKE SURE BOTH LOG FILES ARE DELETED
+BEFORE STARTING A STATS COLLECTION** otherwise the lines will not match between the
+sender and the receiver.
 
 Certificates can be generated with https://github.com/square/certstrap/
 

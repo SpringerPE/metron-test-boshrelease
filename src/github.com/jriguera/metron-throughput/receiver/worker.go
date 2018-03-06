@@ -26,102 +26,104 @@ type Worker struct {
 	waitSeconds float64
 	done *int32
 	mu sync.Mutex
+	wg *sync.WaitGroup
 }
 
 
-func NewWorker(waitSeconds int, id int, workerPool chan chan Job) *Worker {
-	var counter, errors uint64 = 0, 0
-	var done int32 = 0
+func NewWorker(waitSeconds int, id int, workerPool chan chan Job, wg *sync.WaitGroup) *Worker {
 	return &Worker{
 		id: id,
-		workerErrors: &errors,
-		workerCounter: &counter,
 		WorkerPool: workerPool,
 		jobQueue: make(chan Job),
-		Quit: make(chan bool),
 		waitSeconds: (time.Duration(waitSeconds)*time.Second).Seconds(),
-		done: &done,
 		sleepMs: 1,
+		wg: wg,
 	}
 }
 
 
-
-func (w *Worker) readOne(running *int32) bool {
-	select {
-		case job := <-w.jobQueue:
-			// we have received a work request.
-			data := job.Payload
-			if (data.GetEventType() == events.Envelope_LogMessage) {
-				w.mu.Lock()
-				// time for the last log
-				(*w.workerCounter)++
-				w.EndT = time.Now()
-				if *running == 0 {
-					// time for first log (to calculate rate)
-					w.StartT = w.EndT
-					(*running)++
-				}
-				w.mu.Unlock()
-				//tripTime := time.Since(time.Unix(0, data.GetTimestamp()))
-				//log.Printf("t=%s : %s\n", tripTime, data.GetLogMessage().GetMessage())
-			} else if (data.GetEventType() == events.Envelope_Error) {
-				atomic.AddUint64(w.workerErrors, 1)
-				log.Printf("ERROR: %s\n", data.GetError())
-			}
-			return true
-		case <-w.Quit:
-			// we have received a signal to stop
-			log.Printf("Stopping reader in worker=%d\n", w.id)
-			// send again
-			w.Quit <- true
-			return false
+func (w *Worker) readLog(data *events.Envelope, first *int32) bool {
+	if (data.GetEventType() == events.Envelope_LogMessage) {
+		//atomic.AddUint64(w.workerCounter, 1)
+		(*w.workerCounter)++
+		// time for the last log
+		w.EndT = time.Now()
+		if *first == 0 {
+			// time for first log (to calculate rate)
+			w.StartT = w.EndT
+			//atomic.AddInt32(first, 1)
+			(*first)++
+		}
+		//tripTime := time.Since(time.Unix(0, data.GetTimestamp()))
+		//log.Printf("t=%s : %s\n", tripTime, data.GetLogMessage().GetMessage())
+		return true
+	} else if (data.GetEventType() == events.Envelope_Error) {
+		//atomic.AddUint64(w.workerErrors, 1)
+		(*w.workerErrors)++
+		log.Printf("ERROR: %s\n", data.GetError())
 	}
+	return false
 }
 
 
 // Start method starts the run loop for the worker, listening for a quit channel in
 // case we need to stop it
 func (w *Worker) Start() {
+	var counter, errors uint64 = 0, 0
+	var done int32 = 0
+	w.workerCounter = &counter
+	w.workerErrors = &errors
+	w.done = &done
+	w.Quit = make(chan bool)
+	w.wg.Add(1)
+	//log.Printf("Starting worker=%d\n", w.id)
 	go func() {
-		var running int32 = 0
-		for {
-			select {
-			// Add worker's jobQueue to main worker pool and keeps waiting
-			case w.WorkerPool <- w.jobQueue:
-				go w.readOne(&running)
-			case <-w.Quit:
-				// we have received a signal to stop
-				log.Printf("Stopping worker=%d\n", w.id)
-				close(w.Quit)
-				return
-			default:
-				time.Sleep(w.sleepMs * time.Millisecond)
-				if atomic.LoadInt32(&running) > 0 {
-					// Only disconnect after receive something
-					// It will keep waiting forever until at least one log is processed!
-					w.mu.Lock()
-					elapsed := time.Now().Sub(w.EndT)
-					w.mu.Unlock()
-					if (elapsed.Seconds() > w.waitSeconds) {
-						log.Printf("Worker %d about to stop due to inactivity for %f s", w.id, elapsed.Seconds())
-						atomic.AddInt32(w.done, 1)
-						w.Stop()
-					}
+		var first int32 = 0
+		run := true
+		for run {
+			processLog := true
+			for processLog {
+				select {
+					case job := <-w.jobQueue:
+						// we have received a work request.
+						w.readLog(job.Payload, &first)
+					case terminate := <-w.Quit:
+						run = ! terminate
+					default:
+						processLog = false
 				}
 			}
+			select {
+				// Add worker's jobQueue to main worker pool (keeps waiting if no select)
+				case w.WorkerPool <- w.jobQueue:
+					continue
+				default:
+					time.Sleep(w.sleepMs * time.Millisecond)
+					if first > 0 {
+						// Only disconnect after receive something
+						// It will keep waiting forever until at least one log is processed!
+						elapsed := time.Now().Sub(w.EndT)
+						if (elapsed.Seconds() > w.waitSeconds) {
+							log.Printf("Worker %d about to stop due to inactivity for %f s", w.id, elapsed.Seconds())
+							atomic.AddInt32(w.done, 1)
+							run = false
+						}
+					}
+			}
 		}
+		w.wg.Done()
 	}()
 }
 
 
 // Stop signals the worker to stop listening for work requests.
 func (w *Worker) Stop() {
+	//log.Printf("Stopping worker=%d\n", w.id)
 	w.Quit <- true
+	close(w.Quit)
 }
 
 
-// Stop signals the worker to stop listening for work requests.
 func (w *Worker) IsDone() bool {
 	done := atomic.LoadInt32(w.done)
 	if (done > 0) {

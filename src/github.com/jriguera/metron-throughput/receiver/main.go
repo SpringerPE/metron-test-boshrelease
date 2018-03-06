@@ -14,7 +14,7 @@ var (
 	certFile = flag.String("cert", "", "cert to use to listen for gRPC v1 messages")
 	keyFile = flag.String("key", "", "key to use to listen for gRPC v1 messages")
 	caFile = flag.String("ca", "", "ca cert to use to listen for gRPC v1 messages")
-	maxWorkers = flag.Int("max_workers", 10, "The number of workers to start")
+	workers = flag.Int("workers", 10, "The number of workers to start")
 	maxQueueSize = flag.Int("max_queue_size", 1000, "The size of job queue")
 	diodesNumber = flag.Int("diodes", 1000, "Diodes counter")
 	waitTime = flag.Int("wait_time", 30, "seconds to wait after receiving the last log valid(origin) Envelope")
@@ -33,11 +33,11 @@ type Job struct {
 func main() {
 	flag.Parse()
 
-	fmt.Println("*** Init, listening " + *hostport + " with origin: " + *origin)
+	fmt.Printf("*** Init listening on %s with origin=%s with %d threads, %d queue size and keep alive time of %ds\n", *hostport, *origin, *workers, *maxQueueSize, *waitTime)
 	// Create the job queue.
 	jobQueue := make(chan Job, *maxQueueSize)
-	dispatcher := NewDispatcher(*origin, jobQueue, *maxWorkers, *waitTime)
-	dispatcher.Run()
+	dispatcher := NewDispatcher(jobQueue, *workers)
+	dispatcher.Run(*origin, *waitTime)
 
 	fmt.Printf("* Starting Doppler Router with %d diodes\n", *diodesNumber)
 	doppler := NewDoppler(*diodesNumber, *certFile, *keyFile, *caFile)
@@ -45,9 +45,9 @@ func main() {
 	doppler.Run(*origin, jobQueue)
 
 	dispatcher.WaitStop()
-	fmt.Printf("* Done! Showing reports ...\n")
+	fmt.Printf("*** Done! Showing reports ...\n")
 	doppler.Print()
-	dispatcher.Print()
+	dispatcher.Print(*diodesNumber)
 	fmt.Printf("*** End\n")
 	os.Exit(0)
 }

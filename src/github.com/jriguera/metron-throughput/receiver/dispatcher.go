@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
+	"runtime"
+	"sync"
 	//"log"
 )
 
@@ -16,52 +18,63 @@ type Dispatcher struct {
 	jobQueue chan Job
 	filterOrigin string
 	workerInstances []*Worker
+	wg *sync.WaitGroup
+	running bool
 }
 
 
 // NewDispatcher creates, and returns a new Dispatcher object.
-func NewDispatcher(filterOrigin string, jobQueue chan Job, maxWorkers int, aliveSeconds int) *Dispatcher {
+func NewDispatcher(jobQueue chan Job, maxWorkers int) *Dispatcher {
+	var wg sync.WaitGroup
 	workerPool := make(chan chan Job, maxWorkers)
-	return &Dispatcher{
+	d := Dispatcher{
 		jobQueue: jobQueue,
-		aliveSeconds: aliveSeconds,
 		maxWorkers: maxWorkers,
 		workerPool: workerPool,
-		filterOrigin: filterOrigin,
 		workerInstances: make([]*Worker, maxWorkers),
+		wg: &wg,
+		running: false,
 	}
+	return &d
 }
 
 
-
-func (d *Dispatcher) Run() {
-	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewWorker(d.aliveSeconds, i, d.workerPool)
-		worker.Start()
-		d.workerInstances[i] = worker
+func (d *Dispatcher) Run(filterOrigin string, aliveSeconds int) bool {
+	if !d.running {
+		d.aliveSeconds = aliveSeconds
+		for i := 0; i < d.maxWorkers; i++ {
+			worker := NewWorker(d.aliveSeconds, i, d.workerPool, d.wg)
+			d.workerInstances[i] = worker
+			worker.Start()
+		}
+		d.running = true
+		go d.dispatch(filterOrigin)
 	}
-	go d.dispatch()
+	return d.running
 }
 
 
-
-func (d *Dispatcher) Stop() {
-	for i := 0; i < d.maxWorkers; i++ {
-		worker := d.workerInstances[i]
-		worker.Stop()
+func (d *Dispatcher) Stop() bool {
+	if d.running {
+		for i := 0; i < d.maxWorkers; i++ {
+			worker := d.workerInstances[i]
+			worker.Stop()
+		}
+		d.wg.Wait()
+		d.running = false
 	}
+	return !d.running
 }
 
 
-func (d *Dispatcher) dispatch() {
+func (d *Dispatcher) dispatch(filterOrigin string) {
 	for {
 		select {
 		case job := <-d.jobQueue:
 			// a job request has been received
 			go func() {
 				//fmt.Printf("> %s\n", job.Payload)
-				if (*job.Payload.Origin == d.filterOrigin) {
-					//log.Printf("Fetching workerJobQueue for: %s\n", job.Name)
+				if (*job.Payload.Origin == filterOrigin) {
 					// try to obtain a worker job channel that is available.
 					// this will block until a worker is idle
 					//fmt.Printf("> %s\n", job.Payload.GetLogMessage())
@@ -78,27 +91,33 @@ func (d *Dispatcher) dispatch() {
 // Keeps waiting for all workers until they decide to stop
 func (d *Dispatcher) WaitStop() {
 	var doneCounter int = 0
-	for {
-		for i := 0; i < d.maxWorkers; i++ {
-			worker := d.workerInstances[i]
-			if worker.IsDone() {
-				doneCounter++
+	if d.running {
+		for {
+			for i := 0; i < d.maxWorkers; i++ {
+				worker := d.workerInstances[i]
+				if worker.IsDone() {
+					doneCounter++
+				}
 			}
+			if doneCounter >= d.maxWorkers {
+				break
+			}
+			time.Sleep(1 * time.Second)
 		}
-		if doneCounter >= d.maxWorkers {
-			break
-		}
-		time.Sleep(1 * time.Second)
+		d.running = false
 	}
 }
 
 
 // This does not use atomic operations
 // Run it after Stop()!!!!!!!
-func (d *Dispatcher) Print() {
+func (d *Dispatcher) Print(diodesNumber int) bool {
 	var startTime, endTime *time.Time
 	var totalCounter, totalErrors uint64 = 0, 0
-	fmt.Println("* Printing info ...")
+	if (d.running) {
+		return false
+	}
+	fmt.Println("*** INFO:")
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := d.workerInstances[i]
 		if i == 0 {
@@ -116,13 +135,17 @@ func (d *Dispatcher) Print() {
 		totalErrors = totalErrors + worker.Errors()
 		worker.Print()
 	}
-	fmt.Println("* Totals:")
-	fmt.Printf("  Logs processed = %d\n", totalCounter)
+	fmt.Printf("* Totals:\n")
+	fmt.Printf("  Logs received = %d\n", totalCounter)
 	fmt.Printf("  Errors = %d\n", totalErrors)
 	fmt.Printf("  Start time = %s\n", startTime.Format(time.RFC1123))
 	fmt.Printf("  End time = %s\n", endTime.Format(time.RFC1123))
 	elapsed := endTime.Sub(*startTime)
-	fmt.Printf("  Elapsed time = %f s\n", elapsed.Seconds())
-	fmt.Printf("  Rate = %f\n", float64(totalCounter)/elapsed.Seconds())
+	fmt.Printf("  Elapsed seconds = %f s\n", elapsed.Seconds())
+	rate := float64(totalCounter)/elapsed.Seconds()
+	fmt.Printf("  Rate = %f\n", rate)
+	fmt.Printf("* STATS Date Time NumCPUs diodes Workers LogsReceived Errors Duration Rate(logs/s)\n")
+	fmt.Printf("--STATS %s %s %d %d %d %d %d %f %f\n", startTime.Format("01-02-2006"), startTime.Format("15:04:05"), runtime.NumCPU(), diodesNumber, d.maxWorkers, totalCounter, totalErrors, elapsed.Seconds(), rate)
+	return true
 }
 
