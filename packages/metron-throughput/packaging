@@ -23,3 +23,6 @@ popd
 # clean up source artifacts
 rm -rf ${BOSH_INSTALL_TARGET}/src ${BOSH_INSTALL_TARGET}/pkg
 
+# copy scripts
+cp -a helpers/* ${BOSH_INSTALL_TARGET}/bin
+chmod a+x ${BOSH_INSTALL_TARGET}/bin/*

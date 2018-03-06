@@ -15,8 +15,8 @@ log_csv() {
     local input=${1}
     local output=${2}
 
-    echo -n "Processing stats on ${input} ... "
-    awk 'BEGIN { counter=0 } /^--STATS/{ printf("%s,", counter); i(for=2; i<=NF; i++) printf("%s,", $i); print $NF; counter++; } END{ print "STATS processed: " counter >"/dev/stderr" }' ${input} > ${output}
+    echo -n "Processing stats on ${input} -> ${output} ... "
+    awk 'BEGIN { counter=1 } /^--STATS/{ printf("%s,", counter); for (i=2; i<=NF; i++) printf("%s,", $i); print $NF; counter++; } END{ print "STATS processed: " counter-1 >"/dev/stderr" }' "${input}" > "${output}"
 }
 
 
@@ -27,7 +27,7 @@ generate_csv() {
 
     # First colum acts like id (its the line number)
     echo "Mergin CSV in ${output} ..."
-    join -t, -2 2 -2 3 ${sender} ${receiver} > ${output}
+    join -t, ${sender} ${receiver} > ${output}
 }
 
 
@@ -42,11 +42,12 @@ then
     SENDER=$1
     RECEIVER=$2
     OUTPUT=$3
-    SENDER_CSV="$(basename $SENDER_CSV).csv"
-    RECEIVER_CSV="$(basename $RECEIVER_CSV).csv"
+    SENDER_CSV="$(basename ${SENDER}).csv"
+    RECEIVER_CSV="$(basename ${RECEIVER}).csv"
 
     log_csv $SENDER $SENDER_CSV
     log_csv $RECEIVER $RECEIVER_CSV
     generate_csv $SENDER_CSV $RECEIVER_CSV $OUTPUT
     exit 0
 fi
+
