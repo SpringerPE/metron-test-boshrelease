@@ -87,7 +87,7 @@ func (d *Doppler) Start(hostport string) {
 }
 
 
-func (d *Doppler) Run(origin string, jobQueue chan Job) {
+func (d *Doppler) Run(v int, origin string, jobQueue chan Job) {
 	// loop to read logs
 	go func() {
 		for {
@@ -96,9 +96,14 @@ func (d *Doppler) Run(origin string, jobQueue chan Job) {
 					close(d.terminate)
 					return
 				default:
-					data := d.v1Buf.Next()
-					job := Job{Name: origin, Payload: data}
-					jobQueue <- job
+					switch v {
+						case 1:
+							job := Job{Version: v, PayloadV1: d.v1Buf.Next()}
+							jobQueue <- job
+						case 2:
+							job := Job{Version: v, PayloadV2: d.v2Buf.Next()}
+							jobQueue <- job
+					}
 			}
 		}
 	}()

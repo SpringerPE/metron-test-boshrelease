@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/cloudfoundry/sonde-go/events"
+	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 )
 
 
@@ -42,25 +43,63 @@ func NewWorker(waitSeconds int, id int, workerPool chan chan Job, wg *sync.WaitG
 }
 
 
-func (w *Worker) readLog(data *events.Envelope, first *int32) bool {
-	if (data.GetEventType() == events.Envelope_LogMessage) {
-		//atomic.AddUint64(w.workerCounter, 1)
-		(*w.workerCounter)++
-		// time for the last log
-		w.EndT = time.Now()
-		if *first == 0 {
-			// time for first log (to calculate rate)
-			w.StartT = w.EndT
-			//atomic.AddInt32(first, 1)
-			(*first)++
-		}
-		//tripTime := time.Since(time.Unix(0, data.GetTimestamp()))
-		//log.Printf("t=%s : %s\n", tripTime, data.GetLogMessage().GetMessage())
-		return true
-	} else if (data.GetEventType() == events.Envelope_Error) {
-		//atomic.AddUint64(w.workerErrors, 1)
-		(*w.workerErrors)++
-		log.Printf("ERROR: %s\n", data.GetError())
+//https://github.com/cloudfoundry/loggregator-api/blob/master/README.md#v2---mapping-v1
+func (w *Worker) readLog(data Job, first *int32) bool {
+	v := data.Version
+	switch v {
+			case 1:
+				if (data.PayloadV1.GetEventType() == events.Envelope_LogMessage) {
+					//atomic.AddUint64(w.workerCounter, 1)
+					(*w.workerCounter)++
+					// time for the last log
+					w.EndT = time.Now()
+					if *first == 0 {
+						// time for first log (to calculate rate)
+						w.StartT = w.EndT
+						//atomic.AddInt32(first, 1)
+						(*first)++
+					}
+					//tripTime := time.Since(time.Unix(0, data.GetTimestamp()))
+					//log.Printf("t=%s : %s\n", tripTime, data.GetLogMessage().GetMessage())
+					return true
+				}
+				// anything else goes to a different type
+				//atomic.AddUint64(w.workerErrors, 1)
+				(*w.workerErrors)++
+				return false
+			case 2:
+				switch (data.PayloadV2.Message).(type) {
+					case *loggregator_v2.Envelope_Log:
+						//atomic.AddUint64(w.workerCounter, 1)
+						(*w.workerCounter)++
+						// time for the last log
+						w.EndT = time.Now()
+						if *first == 0 {
+							// time for first log (to calculate rate)
+							w.StartT = w.EndT
+							//atomic.AddInt32(first, 1)
+							(*first)++
+						}
+						//tripTime := time.Since(time.Unix(0, data.GetTimestamp()))
+						//log.Printf("t=%s : %s\n", tripTime, data.GetLogMessage().GetMessage())
+						return true
+					default:
+						// anything else is different type for us
+						//atomic.AddUint64(w.workerErrors, 1)
+						(*w.workerErrors)++
+						return false
+				}
+			default:
+				// just count
+				// time for the last log
+				w.EndT = time.Now()
+				if *first == 0 {
+					// time for first log (to calculate rate)
+					w.StartT = w.EndT
+					//atomic.AddInt32(first, 1)
+					(*first)++
+				}
+				(*w.workerCounter)++
 	}
 	return false
 }
@@ -86,7 +125,7 @@ func (w *Worker) Start() {
 				select {
 					case job := <-w.jobQueue:
 						// we have received a work request.
-						w.readLog(job.Payload, &first)
+						w.readLog(job, &first)
 					case terminate := <-w.Quit:
 						run = ! terminate
 					default:

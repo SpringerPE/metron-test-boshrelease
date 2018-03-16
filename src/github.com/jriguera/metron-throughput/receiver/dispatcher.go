@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"sync"
 	//"log"
+	//"code.cloudfoundry.org/loggregator/plumbing/conversion"
 )
 
 
@@ -72,17 +73,31 @@ func (d *Dispatcher) dispatch(filterOrigin string) {
 		select {
 		case job := <-d.jobQueue:
 			// a job request has been received
-			go func() {
-				//fmt.Printf("> %s\n", job.Payload)
-				if (*job.Payload.Origin == filterOrigin) {
-					// try to obtain a worker job channel that is available.
-					// this will block until a worker is idle
-					//fmt.Printf("> %s\n", job.Payload.GetLogMessage())
-					workerJobQueue := <-d.workerPool
-					// dispatch the job to the worker job channel
-					workerJobQueue <- job
-				}
-			}()
+			//go func() {
+				v := job.Version
+				switch v {
+						case 1:
+							//fmt.Printf("> %s\n", job.PayloadV1)
+							if (*job.PayloadV1.Origin == filterOrigin) {
+								// try to obtain a worker job channel that is available.
+								// this will block until a worker is idle
+								//fmt.Printf("> %s\n", job.Payload.GetLogMessage())
+								workerJobQueue := <-d.workerPool
+								// dispatch the job to the worker job channel
+								workerJobQueue <- job
+							}
+						case 2:
+							//fmt.Printf("> %s\n", job.PayloadV2)
+							if (job.PayloadV2.GetTags()["origin"] == filterOrigin) {
+								// try to obtain a worker job channel that is available.
+								// this will block until a worker is idle
+								//fmt.Printf("> %s\n", job.Payload.GetLogMessage())
+								workerJobQueue := <-d.workerPool
+								// dispatch the job to the worker job channel
+							workerJobQueue <- job
+						}
+					}
+			//}
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/cloudfoundry/sonde-go/events"
+	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 )
 
 
@@ -17,6 +18,7 @@ var (
 	workers = flag.Int("workers", 10, "The number of workers to start")
 	maxQueueSize = flag.Int("max_queue_size", 1000, "The size of job queue")
 	diodesNumber = flag.Int("diodes", 1000, "Diodes counter")
+	buffversion = flag.Int("buffversion", 1, "1: v1Buff, 2: v2Buff")
 	waitTime = flag.Int("wait_time", 30, "seconds to wait after receiving the last log valid(origin) Envelope")
 	origin = flag.String("origin", "metron-throughput/zz", "Origin/AZ Envelope fields")
 )
@@ -25,8 +27,9 @@ var (
 
 // Job represents the job to be run
 type Job struct {
-	Payload *events.Envelope
-	Name string
+	PayloadV1 *events.Envelope
+	PayloadV2 *loggregator_v2.Envelope
+	Version int
 }
 
 
@@ -42,7 +45,7 @@ func main() {
 	fmt.Printf("* Starting Doppler Router with %d diodes\n", *diodesNumber)
 	doppler := NewDoppler(*diodesNumber, *certFile, *keyFile, *caFile)
 	doppler.Start(*hostport)
-	doppler.Run(*origin, jobQueue)
+	doppler.Run(*buffversion, *origin, jobQueue)
 
 	dispatcher.WaitStop()
 	fmt.Printf("*** Done! Showing reports ...\n")
