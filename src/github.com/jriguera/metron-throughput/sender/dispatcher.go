@@ -1,34 +1,31 @@
 package main
 
 import (
-	"time"
 	"fmt"
-	"sync"
 	"runtime"
+	"sync"
+	"time"
 )
 
-
 type Dispatcher struct {
-	interval int
-	maxWorkers int
+	interval        int
+	maxWorkers      int
 	workerInstances []*Emiter
-	wg *sync.WaitGroup
-	running bool
+	wg              *sync.WaitGroup
+	running         bool
 }
-
 
 func NewDispatcher(maxWorkers int, ms int) *Dispatcher {
 	var wg sync.WaitGroup
 	d := &Dispatcher{
-		interval: ms,
-		maxWorkers: maxWorkers,
+		interval:        ms,
+		maxWorkers:      maxWorkers,
 		workerInstances: make([]*Emiter, maxWorkers),
-		wg: &wg,
-		running: false,
+		wg:              &wg,
+		running:         false,
 	}
 	return d
 }
-
 
 func (d *Dispatcher) Run(appid string, msg string) bool {
 	if !d.running {
@@ -42,7 +39,6 @@ func (d *Dispatcher) Run(appid string, msg string) bool {
 	return d.running
 }
 
-
 func (d *Dispatcher) Stop() bool {
 	if d.running {
 		for i := 0; i < d.maxWorkers; i++ {
@@ -55,13 +51,12 @@ func (d *Dispatcher) Stop() bool {
 	return !d.running
 }
 
-
 // This does not use atomic operations
 // Run after Stop()!!!!!!!
 func (d *Dispatcher) Print() bool {
 	var startTime, endTime *time.Time
 	var totalCounter, totalErrors uint64 = 0, 0
-	if (d.running) {
+	if d.running {
 		return false
 	}
 	fmt.Println("*** INFO:")
@@ -89,11 +84,10 @@ func (d *Dispatcher) Print() bool {
 	fmt.Printf("  End time = %s\n", endTime.Format(time.RFC1123))
 	elapsed := endTime.Sub(*startTime)
 	fmt.Printf("  Elapsed seconds = %f s\n", elapsed.Seconds())
-	rate := float64(totalCounter)/elapsed.Seconds()
+	rate := float64(totalCounter) / elapsed.Seconds()
 	fmt.Printf("  Rate = %f\n", rate)
-	theoricalRate := (elapsed.Seconds()/(float64(d.interval)/1000000.0))*float64(d.maxWorkers)
+	theoricalRate := (elapsed.Seconds() / (float64(d.interval) / 1000000.0)) * float64(d.maxWorkers)
 	fmt.Printf("* STATS NumCPUs Workers Interval(us) TheoreticalRate(logs/s) LogsSent Errors Duration Rate(logs/s)\n")
 	fmt.Printf("--STATS %d %d %d %f %d %d %f %f\n", runtime.NumCPU(), d.maxWorkers, d.interval, theoricalRate, totalCounter, totalErrors, elapsed.Seconds(), rate)
 	return true
 }
-

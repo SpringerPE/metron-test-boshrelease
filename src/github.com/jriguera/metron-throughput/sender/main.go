@@ -1,25 +1,23 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
-	"time"
 	"os"
-	"flag"
+	"time"
 
 	dropsonde "github.com/cloudfoundry/dropsonde"
 )
 
-
 var (
 	destination = flag.String("destination", "127.0.0.1:3457", "Logging destination (metron_agent listen address)")
-	origin = flag.String("origin", "metron-throughput", "Dropsonde origin envelope field")
-	az = flag.String("az", "zz", "Dropsonde AZ envelope field")
-	runTime = flag.Int("runtime", 60, "Running time in seconds")
-	interval = flag.Int("interval", 1000, "Microseconds to sleep between two (consecutive) log events, with runtime and threads, it defines the rate. Default is 1ms")
-	threads = flag.Int("threads", 1, "Number of worker threads (go subs)")
+	origin      = flag.String("origin", "metron-throughput", "Dropsonde origin envelope field")
+	az          = flag.String("az", "zz", "Dropsonde AZ envelope field")
+	runTime     = flag.Int("runtime", 60, "Running time in seconds")
+	interval    = flag.Int("interval", 1000, "Microseconds to sleep between two (consecutive) log events, with runtime and threads, it defines the rate. Default is 1ms")
+	threads     = flag.Int("threads", 1, "Number of worker threads (go subs)")
 )
-
 
 func main() {
 	flag.Parse()
@@ -38,4 +36,3 @@ func main() {
 	fmt.Printf("*** End\n")
 	os.Exit(0)
 }
-
