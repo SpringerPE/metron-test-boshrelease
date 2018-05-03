@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"fmt"
 	//"time"
@@ -8,37 +7,34 @@ import (
 	"net"
 	"sync"
 
-	"code.cloudfoundry.org/loggregator/plumbing"
 	"code.cloudfoundry.org/loggregator/diodes"
+	"code.cloudfoundry.org/loggregator/plumbing"
 	//"code.cloudfoundry.org/loggregator/plumbing/conversion"
-	"github.com/jriguera/metron-throughput/receiver/internal/server/v1"
 	gendiodes "code.cloudfoundry.org/go-diodes"
 	"code.cloudfoundry.org/loggregator/metricemitter"
+	"github.com/jriguera/metron-throughput/receiver/internal/server/v1"
 	//"github.com/cloudfoundry/sonde-go/events"
 	//"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-
 type SpyHealthRegistrar struct {
-	mu sync.Mutex
+	mu     sync.Mutex
 	values map[string]float64
 }
 
-
 type Doppler struct {
-		v1Buf *diodes.ManyToOneEnvelope
-		v2Buf *diodes.ManyToOneEnvelopeV2
-		manager *v1.IngestorServer
-		server *grpc.Server
-		listener net.Listener
-		healthRegistrar *SpyHealthRegistrar
-		ingressMetric *metricemitter.Counter
-		diodesCounter int
-		terminate chan bool
+	v1Buf           *diodes.ManyToOneEnvelope
+	v2Buf           *diodes.ManyToOneEnvelopeV2
+	manager         *v1.IngestorServer
+	server          *grpc.Server
+	listener        net.Listener
+	healthRegistrar *SpyHealthRegistrar
+	ingressMetric   *metricemitter.Counter
+	diodesCounter   int
+	terminate       chan bool
 }
-
 
 func NewDoppler(diodesCounter int, certFile string, keyFile string, caFile string) *Doppler {
 	tlsConfig, err := plumbing.NewServerMutualTLSConfig(certFile, keyFile, caFile)
@@ -64,17 +60,16 @@ func NewDoppler(diodesCounter int, certFile string, keyFile string, caFile strin
 	plumbing.RegisterDopplerIngestorServer(server, manager)
 
 	return &Doppler{
-		v1Buf: v1Buf,
-		v2Buf: v2Buf,
-		manager: manager,
-		server: server,
+		v1Buf:           v1Buf,
+		v2Buf:           v2Buf,
+		manager:         manager,
+		server:          server,
 		healthRegistrar: healthRegistrar,
-		ingressMetric: ingressMetric,
-		diodesCounter: diodesCounter,
-		terminate: make(chan bool, 1),
+		ingressMetric:   ingressMetric,
+		diodesCounter:   diodesCounter,
+		terminate:       make(chan bool, 1),
 	}
 }
-
 
 func (d *Doppler) Start(hostport string) {
 	listener, err := net.Listen("tcp", hostport)
@@ -86,29 +81,27 @@ func (d *Doppler) Start(hostport string) {
 	d.listener = listener
 }
 
-
 func (d *Doppler) Run(v int, origin string, jobQueue chan Job) {
 	// loop to read logs
 	go func() {
 		for {
 			select {
-				case <-d.terminate:
-					close(d.terminate)
-					return
-				default:
-					switch v {
-						case 1:
-							job := Job{Version: v, PayloadV1: d.v1Buf.Next()}
-							jobQueue <- job
-						case 2:
-							job := Job{Version: v, PayloadV2: d.v2Buf.Next()}
-							jobQueue <- job
-					}
+			case <-d.terminate:
+				close(d.terminate)
+				return
+			default:
+				switch v {
+				case 1:
+					job := Job{Version: v, PayloadV1: d.v1Buf.Next()}
+					jobQueue <- job
+				case 2:
+					job := Job{Version: v, PayloadV2: d.v2Buf.Next()}
+					jobQueue <- job
+				}
 			}
 		}
 	}()
 }
-
 
 func (d *Doppler) Stop() {
 	d.terminate <- true
@@ -120,12 +113,10 @@ func (d *Doppler) Stop() {
 	}
 }
 
-
 func (d *Doppler) Print() {
 	fmt.Println("* Printing Doppler library info ...")
 	d.healthRegistrar.Print()
 }
-
 
 func newSpyHealthRegistrar() *SpyHealthRegistrar {
 	return &SpyHealthRegistrar{
@@ -158,3 +149,6 @@ func (s *SpyHealthRegistrar) Print() {
 	}
 }
 
+func (d *Doppler) GetCounter() uint64 {
+	return d.ingressMetric.GetDelta()
+}
