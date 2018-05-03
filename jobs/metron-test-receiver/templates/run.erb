@@ -21,6 +21,10 @@ export TMPDIR="$TMP_DIR"
 LOG=$LOG_DIR/metron-receiver.log
 ARGS="${@:-$ARGS}"
 
+if [ -f $LOG ]; then
+  rm -f $LOG
+fi
+
 while true
 do
   echo "------ Starting metron-receiver $(date +%y:%m:%d-%H:%M:%S)" | tee -a ${LOG}
